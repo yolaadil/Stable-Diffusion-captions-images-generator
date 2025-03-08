@@ -1,0 +1,64 @@
+import torch
+import requests
+import json
+import os
+
+
+if torch.cuda.is_available():
+    # Shows the nVidia GPUs, if this system has any
+    !nvidia-smi
+!pip install diffusers==0.11.1
+!pip install transformers scipy ftfy accelerate
+
+
+!pip install --upgrade huggingface-hub==0.26.2 transformers==4.46.1 tokenizers==0.20.1 diffusers==0.31.0
+
+
+#chnage Stable DIffusion if you with to
+from diffusers import DiffusionPipeline
+pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-xl-base-1.0")
+
+
+if torch.cuda.is_available():
+    device=torch.device("cuda")
+elif torch.backends.mps.is_available():
+    device=torch.device("mps")
+
+pipe = pipe.to(device)
+
+# type your captions/prompt directory here
+caption_file = "captions.txt"
+
+# Base directory for output images
+output_base_dir = "generated_images"
+os.makedirs(output_base_dir, exist_ok=True)
+
+# Load captions from the text file
+with open(caption_file, "r", encoding="utf-8") as f:
+    captions = [line.strip() for line in f if line.strip()]
+
+# Function to sanitize folder names (remove special characters)
+def sanitize_filename(filename):
+    return "".join(c if c.isalnum() or c in " _-" else "_" for c in filename)
+
+# Generate images for each caption
+for idx, caption in enumerate(captions):
+    folder_name = sanitize_filename(caption)  # Create a valid folder name
+    output_folder = os.path.join(output_base_dir, folder_name)
+    os.makedirs(output_folder, exist_ok=True)
+
+    print(f"Generating images for caption {idx+1}/{len(captions)}: {caption}")
+     # change number of images per caption as needed
+    for i in range(10):  # Generate 10 images per caption
+        print(f" - Generating image {i+1}/10")
+
+        # Generate image
+        image = pipe(caption).images[0]
+
+        # Save image
+        image_path = os.path.join(output_folder, f"image_{i+1}.png")
+        image.save(image_path)
+
+        print(f"   ✅ Image saved: {image_path}")
+
+print("✅ All images generated successfully.")
